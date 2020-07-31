@@ -1,0 +1,11 @@
+package migrations
+
+type %s struct{}
+
+func (m %[1]v) Up() {
+	// setup db
+}
+
+func (m %[1]v) Down() {
+	// take down db
+}
