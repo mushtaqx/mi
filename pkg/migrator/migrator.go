@@ -33,17 +33,10 @@ func Register(dbConn *sql.DB, dir string, m ...Migration) {
 
 // Up : Setup database
 func Up() {
-	var count int
-	for _, migration := range migrations {
-		name := migrationFileName(migration)
-		// if migration doesn't exists in DB,run T.Up() and store migration
-		if found := exists(name); !found {
-			defer fmt.Printf("%s successfully migrated\n", name)
-			migration.Up()
-			store(name) // store to db
-			count++
-		}
-	}
+	count := eachNewMigration(func(name string, Up func()) {
+		Up()
+		store(name)
+	})
 	if count == 0 {
 		fmt.Println("No new migrations available")
 	}
@@ -75,8 +68,8 @@ func Create(name string) {
 	// concatinate a clean path for file write
 	filePath := path.Clean(fmt.Sprintf("%s/%s.go", directory, filename))
 	// Write stub to migration file, on error log & exit
-	_stub := stub(name, "pkg/migrator/__stub__")
-	fatalOnErr(ioutil.WriteFile(filePath, []byte(_stub), 0774))
+	err := ioutil.WriteFile(filePath, []byte(stub(name)), 0774)
+	fatalOnErr(err)
 	fmt.Printf("%s successfully created", filename)
 }
 
@@ -110,6 +103,21 @@ func exists(name string) bool {
 	return err == nil
 }
 
+// On each new migration in migrations, runs callback with aditional data
+func eachNewMigration(callback func(name string, Up func())) (count int) {
+	for _, migration := range migrations {
+		name := migrationFileName(migration)
+		// if migration doesn't exists in DB
+		if found := exists(name); !found {
+			defer fmt.Printf("%s successfully migrated\n", name)
+			callback(name, migration.Up)
+			count++
+		}
+	}
+
+	return count
+}
+
 // Get migration filename
 func migrationFileName(migration Migration) string {
 	// Reflect migration and convert name to snake_case
@@ -122,12 +130,14 @@ func migrationFileName(migration Migration) string {
 	return name
 }
 
-// Read migration stub
-func stub(name, location string) string {
-	stub, err := ioutil.ReadFile(path.Clean(location))
-	fatalOnErr(err)
+// returns migration setup for name
+func stub(name string) string {
+	str := "package migrations\n\n"
+	str += "type %s struct{}\n\n"
+	str += "func (m %[1]v) Up() {\n\t// setup db\n}\n\n"
+	str += "func (m %[1]v) Down() {\n\t// take down db\n}"
 
-	return fmt.Sprintf(string(stub), utils.UpperFirst(name))
+	return fmt.Sprintf(str, utils.UpperFirst(name))
 }
 
 // Erro check
