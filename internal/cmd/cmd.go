@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	mi "github.com/mushtaqx/migo/data/migrations"
+	mi "github.com/mushtaqx/mi/internal/data/migrations"
 )
 
 // Execute root command, log and exit on error
@@ -27,6 +27,6 @@ func handle(args []string) {
 	case "create":
 		mi.Create(args[3])
 	default:
-		fmt.Printf("command \"%s\" not found\n", args[1])
+		fmt.Printf("Command \"%s\" not found\nAvailable commands are: up - down - create\n", args[1])
 	}
 }

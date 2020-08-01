@@ -1,4 +1,4 @@
-module github.com/mushtaqx/migo
+module github.com/mushtaqx/mi
 
 go 1.14
 

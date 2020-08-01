@@ -8,10 +8,8 @@ import (
 	"path"
 	"reflect"
 	"strings"
-	"time"
-	"unicode"
 
-	"github.com/mushtaqx/migo/utils"
+	"github.com/mushtaqx/mi/pkg/utils"
 )
 
 var db *sql.DB
@@ -23,10 +21,12 @@ type Migration interface {
 }
 
 var migrations []Migration
+var directory string
 
 // Register migrations
-func Register(dbConn *sql.DB, m ...Migration) {
+func Register(dbConn *sql.DB, dir string, m ...Migration) {
 	db = dbConn
+	directory = dir
 	migrations = m
 	initialTable()
 }
@@ -35,7 +35,7 @@ func Register(dbConn *sql.DB, m ...Migration) {
 func Up() {
 	var count int
 	for _, migration := range migrations {
-		name := getFilename(migration)
+		name := migrationFileName(migration)
 		// if migration doesn't exists in DB,run T.Up() and store migration
 		if found := exists(name); !found {
 			defer fmt.Printf("%s successfully migrated\n", name)
@@ -53,7 +53,7 @@ func Up() {
 func Down() {
 	var count int
 	for _, migration := range migrations {
-		name := getFilename(migration)
+		name := migrationFileName(migration)
 		if found := exists(name); found {
 			defer fmt.Printf("%s successfully dropped\n", name)
 			migration.Down()
@@ -67,15 +67,16 @@ func Down() {
 }
 
 // Create migration file
-func Create(name, location string) {
+func Create(name string) {
 	// transform name to snake_case
 	filename := utils.SnakeCase(name)
 	// prefix filename with formated datetime
-	filename = strings.Replace(time.Now().Format("020106030405.000"), ".", "", 1) + "_" + filename
+	filename = fmt.Sprintf("%d_%s", utils.NowSpecial(), filename)
 	// concatinate a clean path for file write
-	filePath := path.Clean(fmt.Sprintf("%s/%s.go", location, filename))
+	filePath := path.Clean(fmt.Sprintf("%s/%s.go", directory, filename))
 	// Write stub to migration file, on error log & exit
-	fatalOnErr(ioutil.WriteFile(filePath, []byte(stub(name)), 0774))
+	_stub := stub(name, "pkg/migrator/__stub__")
+	fatalOnErr(ioutil.WriteFile(filePath, []byte(_stub), 0774))
 	fmt.Printf("%s successfully created", filename)
 }
 
@@ -110,11 +111,11 @@ func exists(name string) bool {
 }
 
 // Get migration filename
-func getFilename(migration Migration) string {
+func migrationFileName(migration Migration) string {
 	// Reflect migration and convert name to snake_case
 	name := utils.SnakeCase(reflect.TypeOf(migration).Elem().Name())
 	// check given migration file exists
-	info := utils.FileExist("data/migrations", name)
+	info := utils.FileNameLike(name, directory)
 	// get file name, excluding file extension
 	name = strings.TrimSuffix(info.Name(), ".go")
 
@@ -122,17 +123,11 @@ func getFilename(migration Migration) string {
 }
 
 // Read migration stub
-func stub(name string) string {
-	stub, err := ioutil.ReadFile(path.Clean("migrator/__stub__"))
+func stub(name, location string) string {
+	stub, err := ioutil.ReadFile(path.Clean(location))
 	fatalOnErr(err)
-	if unicode.IsUpper(rune(name[0])) {
-		return fmt.Sprintf(string(stub), name)
-	}
-	// transform lowercase name to uppercase
-	upper := strings.ToUpper(string(name[0]))
-	upper += name[1:]
 
-	return fmt.Sprintf(string(stub), upper)
+	return fmt.Sprintf(string(stub), utils.UpperFirst(name))
 }
 
 // Erro check

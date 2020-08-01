@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/mushtaqx/migo/cmd"
+	"github.com/mushtaqx/mi/internal/cmd"
 )
 
 func main() {
+	// Start migrator
 	cmd.Execute()
 }
