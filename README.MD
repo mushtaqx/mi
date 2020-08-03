@@ -1,54 +1,33 @@
 # Mi
-### Simple database migrator in Go.
-Mi is inspired by Laravels migrator altough that one is more coupled with the framework, this merely provides with a way to easly create some migration files where you can specify Up and Down operations.
-
-#### *When migration Up() runs, its filename gets stored in DB to not run it again.*
-
-#### *By calling Down you will destroy all migration records in migrations table*
+Easly create migration files where you can specify Up and Down operations in GO.
 
 #### Usage
-
-Create migration
-```go
-import mi "github.com/mushtaqx/mi/pkg/migrator"
-
-// ...
-
-// Create migration
-mi.Create("createUsersTable")
-mi.Create("CreateRolesTable")
-```
-
-
-Register migrations
 
 ```go
 
 import (
-    "github.com/mushtaqx/mi/internal/data/conn"
-    mi "github.com/mushtaqx/mi/pkg/migrator"
+    "github.com/mushtaqx/mi/example/data/conn"
+    "github.com/mushtaqx/mi/migrator"
 )
 
-// ...
+// Initial Mi setup
+migrator.Setup(
+    conn.DB(),                  // DB connection
+    "example/data/migrations", // migrations directory
+)
 
-mi.Register(
-    // Provide a connection (*sql.DB)
-    conn.DB(),
-    // migrations directory
-    "internal/data/migrations",
-    // Migrations to run
+// Create new migration
+migrator.New("createUsersTable")
+
+// Register migrations to run
+migrator.Register(
     new(CreateUsersTable),
     new(CreateRolesTable),
 )
-```
 
-```go
-import mi "github.com/mushtaqx/mi/pkg/migrator"
+// Runs Up for all registered migrations
+migrator.Up()
 
-// ...
-
-// Run Up for all migrations
-mi.Up()
-// Run Down for all migrations
-mi.Down()
+// Runs Down for all registered migrations
+migrator.Down()
 ```

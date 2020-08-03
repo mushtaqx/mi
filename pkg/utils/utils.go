@@ -1,8 +1,8 @@
 package utils
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strconv"
@@ -34,8 +34,8 @@ func SnakeCase(str string) (res string) {
 	return res
 }
 
-// UpperFirst : uppercase first character of str
-func UpperFirst(str string) string {
+// ToUpperFirst : uppercase first character of str
+func ToUpperFirst(str string) string {
 	if unicode.IsUpper(rune(str[0])) {
 		return str
 	}
@@ -48,20 +48,20 @@ func UpperFirst(str string) string {
 
 // FileNameLike : Gets first result containing name
 // in filename of dir listing as full or substring
-func FileNameLike(name, p string) os.FileInfo {
+func FileNameLike(name, p string) (file os.FileInfo, err error) {
 	// Get dir entries
-	info, err := ioutil.ReadDir(path.Clean(p))
+	files, err := ioutil.ReadDir(path.Clean(p))
 	if err != nil {
-		log.Fatal("Couldn't read directory for listing")
+		return nil, err
 	}
 
-	for _, i := range info {
-		if strings.Contains(i.Name(), name) && !i.IsDir() {
-			return i
+	for _, f := range files {
+		if strings.Contains(f.Name(), name) && !f.IsDir() {
+			return f, nil
 		}
 	}
 
-	return nil
+	return nil, fmt.Errorf("file %s not found in %s", name, p)
 }
 
 // NowSpecial : get full time.now() formated as int
