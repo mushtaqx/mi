@@ -31,12 +31,16 @@ func Execute() {
 
 func handle(args []string) {
 	switch args[2] {
+	case "new":
+		migrator.New(args[3])
 	case "up":
 		migrator.Up()
 	case "down":
 		migrator.Down()
-	case "new":
-		migrator.New(args[3])
+	case "redo":
+		migrator.Redo()
+	case "status":
+		migrator.Status()
 	default:
 		fmt.Printf("Command \"%s\" not found\n", args[1])
 	}

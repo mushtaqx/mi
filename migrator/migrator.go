@@ -9,7 +9,10 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"text/tabwriter"
+	"time"
 
+	"github.com/mushtaqx/mi/migrator/query"
 	"github.com/mushtaqx/mi/pkg/utils"
 )
 
@@ -29,15 +32,15 @@ var (
 	messageUp              = "UP\t%s\n"
 	messageDown            = "DOWN\t%s\n"
 	messageExists          = "EXISTS\t%s\n"
-	messageNotAvailable    = "No new migrations available"
-	messageTableEmpty      = "Migrations table empty"
-	messageDirNotSpecified = "No migrations directory found, register it in Register func."
+	messageNotAvailable    = "No migrations available\n"
+	messageTableEmpty      = "Migrations table empty\n"
+	messageDirNotSpecified = "No migrations directory found.\n"
 )
 
 // Setup migrator
 func Setup(dbConn *sql.DB, dir string) {
 	db, directory = dbConn, dir
-	initTable()
+	query.Setup(db)
 }
 
 // Register migrations
@@ -60,10 +63,12 @@ func New(name string) {
 	// prefix filename with formated datetime
 	filename = fmt.Sprintf("%d_%s", utils.NowSpecial(), filename)
 	// concatinate a clean path for file write
-	filePath := path.Clean(fmt.Sprintf("%s/%s.go", directory, filename))
+	filePath := path.Join(directory, "/", filename+".go")
 	// Write stub to migration file, on error log & exit
-	err := ioutil.WriteFile(filePath, []byte(stub(name)), 0774)
-	fatalOnErr(err)
+	if err := ioutil.WriteFile(filePath, []byte(stub(name)), 0774); err != nil {
+		log.Fatal(err)
+	}
+
 	fmt.Fprintf(os.Stdout, messageCreated, filename)
 }
 
@@ -71,10 +76,10 @@ func New(name string) {
 func Up() {
 	var count int
 	for _, migration := range migrations {
-		n := filename(migration)
-		if !exists(n) && migration.Up() {
-			store(n)
-			fmt.Fprintf(os.Stdout, messageUp, n)
+		name := filename(migration)
+		if !query.Exists(name) && migration.Up() {
+			query.Store(name)
+			fmt.Fprintf(os.Stdout, messageUp, name)
 			count++
 		}
 	}
@@ -88,14 +93,36 @@ func Down() {
 	var count int
 	for _, migration := range migrations {
 		n := filename(migration)
-		if exists(n) && migration.Down() {
-			destroy(n)
+		if query.Exists(n) && migration.Down() {
+			query.Destroy(n)
 			fmt.Fprintf(os.Stdout, messageDown, n)
 			count++
 		}
 	}
 	if count == 0 {
 		fmt.Fprintf(os.Stderr, messageTableEmpty)
+	}
+}
+
+// Redo : rerun migrations
+func Redo() {
+	Down()
+	Up()
+}
+
+// Status : get migrations status
+func Status() {
+	rows := query.All()
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 8, 8, 0, '\t', 0)
+	defer w.Flush()
+	defer rows.Close()
+	fmt.Fprintf(w, "Name\tAppliedAt\n")
+	for rows.Next() {
+		var name string
+		var appliedAt time.Time
+		rows.Scan(&name, &appliedAt)
+		fmt.Fprintf(w, "%s\t%s\n", name, appliedAt)
 	}
 }
 

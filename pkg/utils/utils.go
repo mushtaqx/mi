@@ -13,8 +13,8 @@ import (
 
 // SnakeCase : converts str to snake_case
 func SnakeCase(str string) (res string) {
-	if str == "" {
-		return ""
+	if str == res {
+		return res
 	}
 
 	for i := range str {
@@ -27,11 +27,10 @@ func SnakeCase(str string) (res string) {
 		if i > 0 {
 			res += "_"
 		}
-		// Add lowercased char to result string.
-		res += strings.ToLower(string(str[i]))
+		res += string(str[i])
 	}
 
-	return res
+	return strings.ToLower(res)
 }
 
 // ToUpperFirst : uppercase first character of str

@@ -30,4 +30,10 @@ migrator.Up()
 
 // Runs Down for all registered migrations
 migrator.Down()
+
+// Runs Down and then Up for all registered migrations
+migrator.Redo()
+
+// Check the status for applied migrations
+migrator.Status()
 ```

@@ -21,7 +21,7 @@ func DB() *sql.DB {
 }
 
 func dataSourceName() string {
-	return fmt.Sprintf("%s:%s@/%s?charset=utf8",
+	return fmt.Sprintf("%s:%s@/%s?parseTime=true&charset=utf8",
 		os.Getenv("DB_USERNAME"),
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_DATABASE"),
